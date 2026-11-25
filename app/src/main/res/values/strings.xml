@@ -1,0 +1,6 @@
+<resources>
+  <string name="app_name">DBS-VocRec</string>
+  <string name="test_button">Test</string>
+  <string name="success_title">Success</string>
+  <string name="success_message">It worked!</string>
+</resources>
