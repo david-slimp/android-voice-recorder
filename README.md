@@ -6,6 +6,8 @@ A lightweight, native Android voice recorder by David Slimp (rock808). No advert
 
 - Dark, compact UI, small recording indicator, elapsed time, pause/resume and stop/save.
 - User-triggered foreground microphone service and persistent recording notification with Pause/Resume and Stop.
+- Automatic timestamped bookmarks record reported interruptions and restoration (Android 10+ silencing callbacks; Android 9 capture errors only). Incomplete files and bookmark sidecars stay available in the library.
+- During a paused PCM recording the microphone stays open, but paused samples are discarded. Stop releases it; Android retains system-level microphone priority. AAC pause behavior is platform-managed.
 - Timestamp bookmarks saved as CSV alongside the recording.
 - Local recording library, playback and Android share chooser. Recordings remain on the device until you choose to share them.
 - Streaming encoders, no live spectrum animation or waveform editing.

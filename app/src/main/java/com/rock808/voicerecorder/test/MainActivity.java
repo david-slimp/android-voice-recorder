@@ -122,7 +122,7 @@ public final class MainActivity extends Activity {
         boolean active=!RecordingService.state.equals("idle"), paused=RecordingService.state.equals("paused");
         marker.setVisibility(active&&!paused?View.VISIBLE:View.INVISIBLE);
         timer.setText(time(RecordingService.elapsed()));
-        status.setText(active?(paused?"Paused":"Recording"):RecordingService.message.startsWith("Saved ")? "Saved":RecordingService.message);
+        status.setText(active?(paused?"Paused (mic may remain in use)":RecordingService.micSilenced?"Microphone interrupted":"Recording"):RecordingService.message.startsWith("Saved ")? "Saved":RecordingService.message);
         File f=RecordingService.activeFile;
         long bytes=f==null?0:f.length();
         String audioFormat=active?RecordingService.format:selectedFormat;
@@ -133,11 +133,11 @@ public final class MainActivity extends Activity {
     }
     private void showLibrary(){
         showingLibrary=true;screen="library";base();header("Recordings");layout.addView(button("Back to recorder",v->{releasePlayer();showRecorder();}));
-        File[] files=RecordingService.directory(this).listFiles(f->(f.getName().matches(".*\\.(m4a|wav|flac|mp3|ogg)"))&&!f.getName().contains(".part."));
+        File[] files=RecordingService.directory(this).listFiles(f->(f.getName().matches(".*\\.(m4a|wav|flac|mp3|ogg)")));
         if(files==null||files.length==0){layout.addView(label("No saved recordings yet.",18));return;}
         Arrays.sort(files,Comparator.comparing(File::getName).reversed());
         for(File f:files){
-            layout.addView(label(f.getName()+"\n"+String.format(Locale.US,"%.2f MB",f.length()/1e6),16));
+            layout.addView(label((f.getName().contains(".part.")?"Incomplete • ":"")+f.getName()+"\n"+String.format(Locale.US,"%.2f MB",f.length()/1e6),16));
             LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);
             row.addView(button("Play",v->play(f)),new LinearLayout.LayoutParams(0,dp(52),1));
             row.addView(button("Stop playback",v->releasePlayer()),new LinearLayout.LayoutParams(0,dp(52),1));

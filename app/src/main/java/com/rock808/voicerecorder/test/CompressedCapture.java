@@ -10,6 +10,7 @@ final class CompressedCapture {
     private final Runnable error;
     private final short[] buffer;
     private volatile boolean running;
+    private volatile boolean paused;
     private volatile Throwable failure;
     private Thread writer;
     CompressedCapture(android.content.Context context,File file,String format,Runnable error)throws IOException{
@@ -25,8 +26,12 @@ final class CompressedCapture {
         try{sink=format.equals("flac")?new FlacSink(file):format.equals("mp3")?new Mp3Sink(file):new OggOpusSink(file);}
         catch(Exception e){input.release();throw new IOException("Encoder startup failed",e);}
     }
+    @android.annotation.TargetApi(29)
+    void observe(java.util.concurrent.Executor executor, AudioManager.AudioRecordingCallback callback) {
+        input.registerAudioRecordingCallback(executor, callback);
+    }
     void start(){
-        if(running)return;
+        if(running){paused=false;return;}
         if(failure!=null)throw new IllegalStateException("Previous audio write failed");
         input.startRecording();
         if(input.getRecordingState()!=AudioRecord.RECORDSTATE_RECORDING)throw new IllegalStateException("Microphone not recording");
@@ -34,18 +39,19 @@ final class CompressedCapture {
             try{
                 while(running){
                     int n=input.read(buffer,0,buffer.length,AudioRecord.READ_BLOCKING);
-                    if(n>0&&running)sink.write(buffer,n);
+                    if(n>0&&running&&!paused)sink.write(buffer,n);
                     else if(n<0&&running)throw new IOException("PCM read error "+n);
                 }
             }catch(Throwable e){if(running){failure=e;running=false;error.run();}}
         },"compressed-writer");writer.start();
     }
-    void pause()throws IOException{
+    void pause(){paused=true;}
+    private void stopCapture()throws IOException{
         running=false;
         if(input.getRecordingState()==AudioRecord.RECORDSTATE_RECORDING)input.stop();
         if(writer!=null){try{writer.join(3000);}catch(InterruptedException e){Thread.currentThread().interrupt();throw new IOException(e);}
             if(writer.isAlive())throw new IOException("Encoder writer did not stop");writer=null;}
     }
-    void finish()throws IOException{try{pause();sink.finish();if(failure!=null)throw new IOException("Encoder failed",failure);}finally{input.release();}}
-    void abort(){try{pause();input.release();sink.abort();}catch(Exception ignored){}}
+    void finish()throws IOException{try{stopCapture();sink.finish();if(failure!=null)throw new IOException("Encoder failed",failure);}finally{input.release();}}
+    void abort(){try{stopCapture();input.release();sink.abort();}catch(Exception ignored){}}
 }

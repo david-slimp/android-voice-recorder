@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3 — 2026-11-25
+- Add timestamped labeled bookmarks for reported capture failures and, on Android 10+, microphone silencing/restoration. Android 9 does not reliably report all silencing.
+
+## 0.4.2 — 2026-11-25
+- Keep the user-started PCM capture session open while paused, discard paused samples and release capture on Stop. AAC uses the platform pause API. Android may still interrupt or override microphone access.
+- Clarify microphone use in the paused UI and persistent notification.
+
 ## 0.4.1 — 2026-11-25
 - Added upper-left menu and About page with app version, author, privacy notes and license text.
 - Added AGPL-3.0-only license for original app code; retained separate upstream codec licenses and notices.

@@ -14,7 +14,7 @@ public final class RecordingFiles extends ContentProvider {
     private File valid(Uri u) throws FileNotFoundException{
         if(u.getPathSegments().size()!=1)throw new FileNotFoundException();
         String n=u.getLastPathSegment();
-        if(n==null||!n.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}\\.(m4a|wav|flac|mp3|ogg)(\\.bookmarks\\.csv)?"))throw new FileNotFoundException();
+        if(n==null||!n.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}\\.(?:part\\.)?(m4a|wav|flac|mp3|ogg)(\\.bookmarks\\.csv)?"))throw new FileNotFoundException();
         File f=new File(RecordingService.directory(getContext()),n);
         if(!f.isFile())throw new FileNotFoundException();
         return f;

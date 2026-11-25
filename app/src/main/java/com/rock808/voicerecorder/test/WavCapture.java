@@ -11,6 +11,7 @@ final class WavCapture {
     private final Runnable onError;
     private final int bufferSize;
     private volatile boolean running;
+    private volatile boolean paused;
     private Thread writer;
     private volatile Throwable failure;
     private long bytes;
@@ -29,8 +30,12 @@ final class WavCapture {
     private void header(long len)throws IOException{
         output.seek(0);output.writeBytes("RIFF");le((int)(36+len),4);output.writeBytes("WAVEfmt ");le(16,4);le(1,2);le(1,2);le(RATE,4);le(RATE*2,4);le(2,2);le(16,2);output.writeBytes("data");le((int)len,4);output.seek(44+len);
     }
+    @android.annotation.TargetApi(29)
+    void observe(java.util.concurrent.Executor executor, AudioManager.AudioRecordingCallback callback) {
+        input.registerAudioRecordingCallback(executor, callback);
+    }
     void start(){
-        if(running)return;
+        if(running){paused=false;return;}
         if(failure!=null)throw new IllegalStateException("Previous PCM write failed");
         input.startRecording();
         if(input.getRecordingState()!=AudioRecord.RECORDSTATE_RECORDING)throw new IllegalStateException("Microphone not recording");
@@ -39,7 +44,7 @@ final class WavCapture {
             try{
                 while(running){
                     int n=input.read(buffer,0,buffer.length,AudioRecord.READ_BLOCKING);
-                    if(n>0&&running){
+                    if(n>0&&running&&!paused){
                         if(bytes+n>0xfffffff0L-36)throw new IOException("WAV size limit reached");
                         output.write(buffer,0,n);bytes+=n;
                     }else if(n<0&&running)throw new IOException("PCM read error "+n);
@@ -47,12 +52,13 @@ final class WavCapture {
             }catch(Throwable e){if(running){failure=e;running=false;onError.run();}}
         },"wav-writer");writer.start();
     }
-    void pause() throws IOException {
+    void pause() {paused=true;}
+    private void stopCapture() throws IOException {
         running=false;
         if(input.getRecordingState()==AudioRecord.RECORDSTATE_RECORDING) input.stop();
         if(writer!=null){try{writer.join(2000);}catch(InterruptedException e){Thread.currentThread().interrupt();throw new IOException(e);}if(writer.isAlive())throw new IOException("PCM writer did not stop");writer=null;}
         header(bytes);
     }
-    void finish() throws IOException {try{pause();}finally{input.release();output.close();}}
+    void finish() throws IOException {try{stopCapture();}finally{input.release();output.close();}}
     void abort(){try{finish();}catch(Exception ignored){}}
 }
